@@ -65,6 +65,8 @@ func ExitOrTerminate(ctx context.Context, pid, code int) (err error) {
 // The returned error will be nil if the process exited. If it is non-nil, the
 // process may still be running. If the context has been cancelled the context's
 // error may be returned.
+//
+// TODO: Check to make sure the process is actually running first.
 func Exit(ctx context.Context, pid, code int) (err error) {
 	process, err := openProcess(ProcessCreateRemoteThread, false, uint32(pid))
 	if err != nil {
@@ -154,6 +156,8 @@ func execRemoteExit(ctx context.Context, remoteProcess syscall.Handle, exitcode 
 // its process id. The process will be given no opportunity to execute a
 // system shutdown or run any cleanup functions. Child processes will be
 // orphaned.
+//
+// TODO: Check to make sure the process is actually running first.
 //
 // TODO: Kill the entire process tree of the target process.
 func Terminate(pid int, code int) (err error) {
