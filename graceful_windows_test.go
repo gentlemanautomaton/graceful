@@ -1,6 +1,6 @@
 // +build windows
 
-package graceful
+package graceful_test
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/gentlemanautomaton/graceful"
 )
 
 const sigint = int(128 + syscall.SIGINT)
@@ -42,7 +44,7 @@ func TestHelperUndying(t *testing.T) {
 }
 */
 
-func ExampleExit() {
+func Example() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	cmd := exec.Command("ping", "127.0.0.1")
@@ -51,9 +53,9 @@ func ExampleExit() {
 		os.Exit(2)
 	}
 	fmt.Println("ping started")
-	if err := Exit(ctx, cmd.Process.Pid, -1); err != nil {
+	if err := graceful.Exit(ctx, cmd.Process.Pid, 2); err != nil {
 		fmt.Printf("exit failed: %v\n", err)
-		cmd.Process.Kill() // Forcefully end the process (but know that this won't kill child processes)
+		graceful.Terminate(cmd.Process.Pid, 2) // Forcefully end the process (but know that this won't kill child processes)
 		os.Exit(2)
 	}
 	cmd.Wait()
@@ -65,7 +67,7 @@ func ExampleExit() {
 
 func TestExit(t *testing.T) {
 	cmd := execSleep(t, time.Second)
-	Exit(context.Background(), cmd.Process.Pid, sigint)
+	graceful.Exit(context.Background(), cmd.Process.Pid, sigint)
 	cmd.Wait()
 	if err := checkExitCode(cmd, sigint); err != nil {
 		t.Fatal(err)
@@ -76,8 +78,7 @@ func TestExitCancellation(t *testing.T) {
 	cmd := execSleep(t, time.Millisecond*200)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	Exit(ctx, cmd.Process.Pid, sigint)
-	err := Exit(ctx, cmd.Process.Pid, sigint)
+	err := graceful.Exit(ctx, cmd.Process.Pid, sigint)
 	if err != context.Canceled {
 		t.Fatalf("unexpected exit error \"%v\" when \"%s\" was expected", err, context.Canceled)
 	}
@@ -91,7 +92,7 @@ func TestExitDeadline(t *testing.T) {
 	cmd := execSleep(t, time.Millisecond*200)
 	ctx, cancel := context.WithTimeout(context.Background(), 0)
 	defer cancel()
-	err := Exit(ctx, cmd.Process.Pid, sigint)
+	err := graceful.Exit(ctx, cmd.Process.Pid, sigint)
 	if err != context.DeadlineExceeded {
 		t.Fatalf("unexpected shutdown error \"%v\" when \"%s\" was expected", err, context.DeadlineExceeded)
 	}
@@ -102,7 +103,7 @@ func TestExitDeadline(t *testing.T) {
 }
 
 func TestExitBadPID(t *testing.T) {
-	err := Exit(context.Background(), 4322341234, sigint)
+	err := graceful.Exit(context.Background(), 4322341234, sigint)
 	if err == nil || err.Error() != "OpenProcess: The parameter is incorrect." {
 		t.Fatalf("unexpected exit error \"%v\" when \"%s\" was expected", err, syscall.EINVAL)
 	}
@@ -110,7 +111,7 @@ func TestExitBadPID(t *testing.T) {
 
 func TestTerminate(t *testing.T) {
 	cmd := execSleep(t, time.Second)
-	Terminate(cmd.Process.Pid, sigint)
+	graceful.Terminate(cmd.Process.Pid, sigint)
 	cmd.Wait()
 	if err := checkExitCode(cmd, 1); err != nil {
 		t.Fatal(err)
