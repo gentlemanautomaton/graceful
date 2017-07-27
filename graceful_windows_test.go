@@ -47,12 +47,12 @@ func ExampleExit() {
 	defer cancel()
 	cmd := exec.Command("ping", "127.0.0.1")
 	if err := cmd.Start(); err != nil {
-		fmt.Printf("unable to start ping: %v", err)
+		fmt.Printf("unable to start ping: %v\n", err)
 		os.Exit(2)
 	}
 	fmt.Println("ping started")
 	if err := Exit(ctx, cmd.Process.Pid, -1); err != nil {
-		fmt.Printf("exit failed: %v", err)
+		fmt.Printf("exit failed: %v\n", err)
 		cmd.Process.Kill() // Forcefully end the process (but know that this won't kill child processes)
 		os.Exit(2)
 	}
